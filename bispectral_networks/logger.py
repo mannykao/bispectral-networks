@@ -62,10 +62,11 @@ class TBLogger:
 
         
 def load_checkpoint(logdir, device="cpu"):
+    print(f"load_checkpoint(logdir={logdir})")
     all_checkpoints = os.listdir(os.path.join(logdir, "checkpoints"))
     all_epochs = sorted([int(x.split("_")[1].split(".")[0]) for x in all_checkpoints])
     last_epoch = all_epochs[-1]
-    checkpoint = torch.load(os.path.join(logdir, “checkpoints”, “checkpoint_{}.pt”.format(last_epoch)), map_location=torch.device(device))
+    checkpoint = torch.load(os.path.join(logdir, "checkpoints", "checkpoint_{}.pt".format(last_epoch)), map_location=torch.device(device))
     config = torch.load(os.path.join(logdir, "config.pt"))
     if not hasattr(checkpoint, "model"):
         trainer = checkpoint["trainer"]
