@@ -1,0 +1,6 @@
+train.py --n_examples 50000
+---------------------------
+Running experiment on device 0...
+Epoch 0 ||  N Examples 21504 || Train Total Loss 1.65222 || Validation Total Loss 1.39643
+Epoch 1 ||  N Examples 43008 || Train Total Loss 1.46046 || Validation Total Loss 1.22829
+Epoch 2 ||  N Examples 64512 || Train Total Loss 0.85459 || Validation Total Loss 0.57237

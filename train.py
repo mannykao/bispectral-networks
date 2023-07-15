@@ -20,7 +20,7 @@ if __name__ == '__main__':
         help="Name of .py config file with no extension.",
         default="translation_experiment",
     )
-    parser.add_argument("--device", type=int, help="device to run on, -1 for cpu", default=-1)
+    parser.add_argument("--device", type=int, help="device to run on, -1 for cpu", default=0)
     parser.add_argument(
         "--n_examples", type=int, help="number of data examples", default=5e6
     )
