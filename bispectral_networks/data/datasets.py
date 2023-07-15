@@ -181,11 +181,11 @@ class MNISTExemplars(Dataset):
 			idxs = label_idxs[d]
 			random_idxs = np.random.choice(idxs, size=self.n_exemplars, replace=False)
 			for i in random_idxs:
-				exemplar_data.append(mnist[i])
+				exemplar_data.append(np.asarray(mnist[i], dtype=np.float32))
 				labels.append(d)
 			
 		#print(len(exemplar_data))	
-		self.data = torch.tensor(exemplar_data)
+		self.data = torch.tensor(np.array(exemplar_data))
 		self.labels = torch.tensor(labels).long()
 
 	def __getitem__(self, idx):
