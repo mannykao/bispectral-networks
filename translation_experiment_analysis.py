@@ -6,7 +6,7 @@ import time, timeit
 from mkpyutils.testutil import time_spent
 
 import sys
-sys.path.append("../")
+#sys.path.append("../")
 import os
 import torch
 import numpy as np
@@ -32,10 +32,14 @@ from mk_mlutils.utils import torchutils
 from rotation_experiment_analysis import Weights
 #from rotation_experiment_analysis import Weights, Equivariance, Invariance, Generalization, Robustness
 
-kWeights=True
-kEquivariance=True
-kInvariance=True
-kGeneralization=True
+kMNIST_path = "datasets/mnist/mnist_train.csv"
+log_path = "logs/translation_model/"
+save_dir = Path("notebooks/figs/translation/")
+
+kWeights=False
+kEquivariance=False
+kInvariance=False
+kGeneralization=False
 kRobustness=True
 
 def CyclicTranslation2DXform(fraction_transforms=1.0) -> List:
@@ -46,12 +50,13 @@ def CyclicTranslation2DXform(fraction_transforms=1.0) -> List:
 	return [transform1, transform2, transform3, transform4]
 
 def MNIST_train_inv_eq_set(
-	path="../datasets/mnist/mnist_train.csv", 
+	path=kMNIST_path,
 	n_exemplars=1,	# 1 exemplar per digit is randomly selected
 	patch_size:int=16,
-	fraction_transforms=1.0,	#use subsampled rotation xform or full 
+	fraction_transforms=1.0,	#use subsampled rotation xform or full
+	seed=0, 
 )  -> TransformDataset:
-	torch.random.seed()
+	torchutils.initSeeds(seed)		#torch.random.seed()
 	
 	pattern = MNISTExemplars(path=path, n_exemplars=n_exemplars)
 
@@ -84,28 +89,28 @@ def Equivariance(
 	plt.figure(figsize=(7, 7))
 	plt.plot(l_out[::16][:16, [1, 13, 22, 3]].real,);
 	plt.axis([-1, 16, -4.5, 4.5]);
-	plt.savefig(os.path.join(save_dir, "equivariance-0.pdf"))
+	plt.savefig(save_dir/"equivariance-0.pdf")
 
 	image_grid(inv_eq_dataset.data[::16][16:24].reshape(-1, 16, 16), shape=(1, 8), cmap="Greys_r")
 
 	plt.figure(figsize=(7, 7))
 	plt.plot(l_out[::16][16:32, [1, 13, 22, 3]].real,);
 	plt.axis([-1, 16, -4.5, 4.5]);
-	plt.savefig(os.path.join(save_dir, "equivariance-1.pdf"))
+	plt.savefig(save_dir/"equivariance-1.pdf")
 
 	image_grid(inv_eq_dataset.data[::16][32:40].reshape(-1, 16, 16), shape=(1, 8), cmap="Greys_r")
 
 	plt.figure(figsize=(7, 7))
 	plt.plot(l_out[::16][32:48, [1, 13, 22, 3]].real,);
 	plt.axis([-1, 16, -4.5, 4.5]);
-	plt.savefig(os.path.join(save_dir, "equivariance-2.pdf"))
+	plt.savefig(save_dir/"equivariance-2.pdf")
 
 	time_spent(start, f"Elapsed Time: ", count=1)
 
 def Invariance(
 	inv_eq_dataset:torch.utils.data.Dataset,
 	out, 				#output of model (foreward)
-	save_dir:str,
+	save_dir:Path,
 ):
 	"""
 		Output: save_dir/"invariance-0|1|2.pdf"
@@ -119,21 +124,21 @@ def Invariance(
 	plt.figure(figsize=(7, 7))
 	plt.plot(out[::16][:16].real,);
 	plt.axis([-1, 16, -0.2, 0.3]);
-	plt.savefig(os.path.join(save_dir, "invariance-0.pdf"))
+	plt.savefig(save_dir/"invariance-0.pdf")
 
 	image_grid(inv_eq_dataset.data[::16][16:24].reshape(-1, 16, 16), shape=(1, 8), cmap="Greys_r")
 
 	plt.figure(figsize=(7, 7))
 	plt.plot(out[::16][16:32].real,);
 	plt.axis([-1, 16, -0.2, 0.3]);
-	plt.savefig(os.path.join(save_dir, "invariance-1.pdf"))
+	plt.savefig(save_dir/"invariance-1.pdf")
 
 	image_grid(inv_eq_dataset.data[::16][32:40].reshape(-1, 16, 16), shape=(1, 8), cmap="Greys_r")
 
 	plt.figure(figsize=(7, 7))
 	plt.plot(out[::16][32:48].real,);
 	plt.axis([-1, 16, -0.2, 0.3]);
-	plt.savefig(os.path.join(save_dir, "invariance-2.pdf"))
+	plt.savefig(save_dir/"invariance-2.pdf")
 
 	time_spent(start, f"Elapsed Time: ", count=1)
 
@@ -141,19 +146,20 @@ def Generalization(
 	checkpoint:torch.nn.Module,
 	patch_size:int, 
 	k:int,				#k in knn - i.e. number of clusters
-	save_dir:str,
+	save_dir:Path,
 ):
 	# We next quantify the generalization performance of the network on the test data. 
 	#Here, we use a smaller subset of the rotations, to make it computationally feasible to compute pairwise distances between the network outputs for all datapoints. We then examine the k-nearest neighbors of each datapoint and examine the fraction of k that are correctly classified as within-orbit. K is set to the number of elements in the orbit. Here, since 10% of the orbit was selected (fraction_transforms parameter in CyclicTranslation2D), the orbit has 25 elements. A model that perfectly collapses orbits should achieve 100% classification accuracy on this metric.
 	print("Generalization")
 	from bispectral_networks.analysis.knn import knn_analysis
 	start = time.time()
+	torchutils.initSeeds(0)		#torch.random.seed()
 
 	# 1 exemplar per digit is randomly selected
 
 	# Apply transformations
 	knn_dataset = MNIST_train_inv_eq_set(
-		path="../datasets/mnist/mnist_train.csv", 
+		path=kMNIST_path, 
 		n_exemplars=1,	# 1 exemplar per digit is randomly selected
 		patch_size=16,
 		fraction_transforms=0.1
@@ -169,7 +175,7 @@ def Generalization(
 	plt.figure(figsize=(15, 15))
 	im = plt.imshow(distance_matrix)
 	plt.colorbar(im, fraction=0.046, pad=0.04)
-	plt.savefig(save_dir + "test_distance_matrix.pdf")
+	plt.savefig(save_dir/"test_distance_matrix.pdf")
 
 	time_spent(start, f"Elapsed Time: ", count=1)
 
@@ -178,22 +184,23 @@ def Robustness(
 	checkpoint:torch.nn.Module,
 	patch_size:int,
 	save_dir:str,
+	device="cpu"
 ):
 	# ## Robustness Analysis
 
 	# Now, we analyze the robustness of the model through a simple adversarial example experiment. Here, we start with noise as the input, and optimize this input to yield a network output that is as close as possible to the network output for a target image. For this analysis, we select a single exemplar from the MNIST dataset as the target, and run the optimization starting from 100 different noise images to examine the range of results. Note that the BasicGradientDescent method often gets stuck in local minima that are farther from the target embedding than desired to be considered a meaningful "adversarial example." While such runs are interesting regardless, the approach should be rerun until the target reaches the margin. Fancier optimization methods could be used to escape these local minima, but here we use a vanilla model.
 	# 
 	# We find that, for this model, points that are close in embedding space will be (close to) equivalent up to the group action that the model has learned to be invariant to. In this notebook we use a margin of 0.1, which is larger than that used in the paper (since it tends to be difficult to drive the model lower). This means that the examples are more likely to look different from the target. Despite this, we find the same effect, which further demonstrates the robustness of this model.
-	print("adversarial Robustness")
+	print("Adversarial Robustness")
 	start = time.time()
 
 	from bispectral_networks.analysis.adversary import BasicGradientDescent
 	from bispectral_networks.analysis.plotting import animated_video
 
-	torch.random.seed()
+	torchutils.initSeeds(1)		#torch.random.seed()
 
 	# 1 exemplar per digit is randomly selected
-	pattern = MNISTExemplars(path="../datasets/mnist/mnist_train.csv", n_exemplars=1)
+	pattern = MNISTExemplars(path=kMNIST_path, n_exemplars=1)
 
 	# Resize the images to the size of the patches the network was trained on
 	resized = torch.stack([torch.tensor(resize(x.numpy(), (patch_size, patch_size))) for x in pattern.data])
@@ -206,9 +213,9 @@ def Robustness(
 	robustness_dataset = TransformDataset(pattern, [transform1, transform2, transform3])
 	print(f" {robustness_dataset.data.shape=}")
 
-	device = "cpu"
+	cpudevice = "cpu"
 	target_idx = np.random.randint(len(robustness_dataset.data))
-	target_image = robustness_dataset.data[target_idx].to(device)
+	target_image = robustness_dataset.data[target_idx].to(cpudevice)
 	target_image_tiled = torch.tensor(np.tile(target_image, (100, 1)))
 
 	plt.imshow(target_image.reshape(patch_size, patch_size), cmap="Greys_r")
@@ -251,7 +258,6 @@ if __name__ == '__main__':
 	SEED = 0
 	device = torchutils.onceInit(kCUDA=True, seed=SEED)
  
-	save_dir = "figs/translation/"
 	os.makedirs(save_dir, exist_ok=True)
 
 	# ### Load Checkpoint
@@ -260,9 +266,7 @@ if __name__ == '__main__':
 	# 
 	# Alternatively, the user can load a new model by changing the `log_path` below to the location of the log folder for that model.
 
-	log_path = "../logs/translation_model/"
-	checkpoint, config, weights = load_checkpoint(log_path)
-
+	checkpoint, config, weights = load_checkpoint(log_path, device=device)
 	print(f"{weights.dtype=}, {weights.shape=}")
 
 	patch_size = config["dataset"]["pattern"]["params"]["patch_size"]
@@ -281,7 +285,7 @@ if __name__ == '__main__':
 	# **Generate Dataset**
 
 	inv_eq_dataset = MNIST_train_inv_eq_set(
-		path="../datasets/mnist/mnist_train.csv", 
+		path=kMNIST_path,
 		n_exemplars=1,	# 1 exemplar per digit is randomly selected
 		patch_size=16,
 		fraction_transforms=1.0
@@ -314,5 +318,5 @@ if __name__ == '__main__':
 		Generalization(checkpoint, patch_size=16, k=25, save_dir=save_dir)
 
 	if kRobustness:
-		Robustness(checkpoint, patch_size, save_dir)
+		Robustness(checkpoint, patch_size, save_dir, device)
 
