@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 # coding: utf-8
+from typing import Tuple, Callable, Iterable, List, Any, Dict, Union
+from pathlib import Path
+import time, timeit
+from mkpyutils.testutil import time_spent
 
 import sys
 sys.path.append("../")
@@ -23,6 +27,8 @@ import matplotlib.font_manager as font_manager
 sns.set(font_scale=1.5)
 sns.set_style('dark')
 
+from mk_mlutils.utils import torchutils
+
 kWeights=True
 kEquivariance=True
 kInvariance=True
@@ -30,13 +36,21 @@ kGeneralization=True
 kRobustness=True
 
 
+def SO2Xform(fraction_transforms=1.0) -> List:
+	transform1 = SO2(fraction_transforms=fraction_transforms, sample_method="linspace")
+	transform2 = CircleCrop()
+	transform3 = CenterMean()
+	transform4 = UnitStd()
+	transform5 = Ravel()
+	return [transform1, transform2, transform3, transform4, transform5]
+
 def MNIST_train_inv_eq_set(
 	path="../datasets/mnist/mnist_train.csv", 
 	n_exemplars=1,	# 1 exemplar per digit is randomly selected
 	patch_size:int=16,
 	fraction_transforms=1.0,	#use subsampled rotation xform or full 
 )  -> TransformDataset:
-	torch.random.seed()
+	torchutils.initSeeds(0)		#torch.random.seed()
 	
 	pattern = MNISTExemplars(path=path, n_exemplars=n_exemplars)
 
@@ -45,34 +59,33 @@ def MNIST_train_inv_eq_set(
 	pattern.data = resized
 
 	# Apply transformations
-	transform1 = SO2(fraction_transforms=fraction_transforms, sample_method="linspace")
-	transform2 = CircleCrop()
-	transform3 = CenterMean()
-	transform4 = UnitStd()
-	transform5 = Ravel()
-	inv_eq_dataset = TransformDataset(pattern, [transform1, transform2, transform3, transform4, transform5])
+	transforms = SO2Xform(fraction_transforms=fraction_transforms)
+	inv_eq_dataset = TransformDataset(pattern, transforms)
 	return inv_eq_dataset
 
 def Weights(
 	weights,
-	save_dir
+	save_dir,
+	kPlot:bool=False
 ):
 	# **Real Components**
 	image_grid(weights.real, cmap="Greys_r", shape=(16, 16), figsize=(15, 15), share_range=False, save_name=os.path.join(save_dir, "W_real.pdf"))
-
 	# **Imaginary Components**
 	image_grid(weights.imag, cmap="Greys_r", shape=(16, 16), figsize=(15, 15), share_range=False, save_name=os.path.join(save_dir, "W_imag.pdf"))
 
+	if kPlot: plt.show()
 
 def Equivariance(
 	inv_eq_dataset,
 	out, 				#output of model (foreward)
-	save_dir
+	save_dir,
+	kPlot:bool=False
 ):
 	""" **First Linear Term (Equivariance)** 
 		Output: save_dir/"equivariance-0|1|2.pdf"
 	"""
 	print("Equivariance")
+	start = time.time()
 	# The plots below show the outputs of 3 neurons after the first linear term $Wx$ is computed, 
 	# on the data below: a single digit swept linearly through a translation.  
 	# Each colored line represents a single neuron, the y-axis shows the neuron's response, 
@@ -102,19 +115,23 @@ def Equivariance(
 	plt.axis([-20, 380, -3.2, 3.2]);
 	plt.savefig(os.path.join(save_dir, "equivariance-2.pdf"))
 
+	time_spent(start, f"Elapsed Time: ", count=1)
 
 def Invariance(
 	inv_eq_dataset:torch.utils.data.Dataset,
 	out, 				#output of model (foreward)
 	save_dir:str,
+	kPlot:bool=False
 ):
 	"""
 		Output: save_dir/"invariance-0|1|2.pdf"
 	"""
 	print("Invariance")
+	start = time.time()
+	out = out.detach().numpy()
+
 	image_grid(inv_eq_dataset.data[::20][:9].reshape(-1, 16, 16), shape=(1, 9), cmap="Greys_r")
 
-	out = out.detach().numpy()
 	plt.figure(figsize=(7, 7))
 	plt.plot(out[:360].real);
 	plt.axis([-20, 380, -0.2, 1.0]);
@@ -134,11 +151,16 @@ def Invariance(
 	plt.axis([-20, 380, -0.2, 1.0]);
 	plt.savefig(os.path.join(save_dir, "invariance-2.pdf"))
 
+	time_spent(start, f"Elapsed Time: ", count=1)
+
+	if kPlot: plt.show()
+
 def Generalization(
 	checkpoint:torch.nn.Module,
 	patch_size:int, 
 	k:int,				#k in knn - i.e. number of clusters
 	save_dir:str,
+	kPlot:bool=False,
 ):
 	# We next quantify the generalization performance of the network on the test data. 
 	# Here, we use a smaller subset of the rotations, to make it computationally feasible to compute pairwise distances 
@@ -149,7 +171,8 @@ def Generalization(
 	from bispectral_networks.analysis.knn import knn_analysis
 
 	print("Generalization")
-	torch.random.seed()
+	start = time.time()
+	torchutils.initSeeds(0)		#torch.random.seed()
 
 	knn_dataset = MNIST_train_inv_eq_set(
 		path="../datasets/mnist/mnist_train.csv", 
@@ -157,25 +180,29 @@ def Generalization(
 		patch_size=16,
 		fraction_transforms=0.1
 	)
-	print(knn_dataset.data.shape)
+	print(f" {knn_dataset.data.shape=}")
 
 	#4: knn
 	#k = 36
 	embeddings, distance_matrix, knn_scores = knn_analysis(checkpoint.model, knn_dataset, k)
 
-	print("The model successfully classified {:.2f}% of the orbit on average.".format(knn_scores[0] * 100))
-	print("The model misclassified {:.2f}% of the orbit on average.".format(knn_scores[1] * 100))
+	print(" The model successfully classified {:.2f}% of the orbit on average.".format(knn_scores[0] * 100))
+	print(" The model misclassified {:.2f}% of the orbit on average.".format(knn_scores[1] * 100))
 
 	plt.figure(figsize=(15, 15))
 	im = plt.imshow(distance_matrix)
 	plt.colorbar(im, fraction=0.046, pad=0.04)
 	plt.savefig(save_dir + "test_distance_matrix.pdf")
 
+	time_spent(start, f"Elapsed Time: ", count=1)
+
+	if kPlot: plt.show()
 
 def Robustness(
 	checkpoint:torch.nn.Module,
 	patch_size:int,
 	save_dir:str,
+	kPlot:bool=False
 ):
 	# Now, we analyze the robustness of the model through a simple adversarial example experiment. 
 	# Here, we start with noise as the input, and optimize this input to yield a network output that is as close as 
@@ -192,10 +219,11 @@ def Robustness(
 	# in the paper (since it tends to be difficult to drive the model lower). This means that the examples are more likely 
 	# to look different from the target. Despite this, we find the same effect, which further demonstrates the robustness of this model.
 	print("adversarial Robustness")
+	start = time.time()
 	from bispectral_networks.analysis.adversary import BasicGradientDescent
 	from bispectral_networks.analysis.plotting import animated_video
 
-	torch.random.seed()
+	torchutils.initSeeds(1)		#torch.random.seed()
 
 	# 1 exemplar per digit is randomly selected
 	pattern = MNISTExemplars(path="../datasets/mnist/mnist_train.csv", n_exemplars=1)
@@ -209,7 +237,7 @@ def Robustness(
 	transform2 = UnitStd()
 	transform3 = Ravel()
 	robustness_dataset = TransformDataset(pattern, [transform1, transform2, transform3])
-	print(robustness_dataset.data.shape)
+	print(f" {robustness_dataset.data.shape=}")
 
 	device = "cpu"
 	target_idx = np.random.randint(len(robustness_dataset.data))
@@ -217,7 +245,6 @@ def Robustness(
 	target_image_tiled = torch.tensor(np.tile(target_image, (100, 1)))
 
 	plt.imshow(target_image.reshape(patch_size, patch_size), cmap="Greys_r")
-
 
 	adversary = BasicGradientDescent(model=checkpoint.model, 
 									 target_image=target_image_tiled,
@@ -235,6 +262,9 @@ def Robustness(
 	image_grid(history[-1], shape=(10, 10), cmap="Greys_r", figsize=(20, 20))
 	plt.savefig(os.path.join(save_dir, "adversary.pdf"))
 
+	time_spent(start, f"Elapsed Time: ", count=1)
+
+	if kPlot: plt.show()
 
 	# **Visualizing the Optimization Process**
 	# 
@@ -251,6 +281,9 @@ if __name__ == '__main__':
 	# - Generalization
 	# - Robustness
 	print("Bispectral Neural Networks - Rotation Experiment..")
+
+	SEED = 0
+	device = torchutils.onceInit(kCUDA=True, seed=SEED)
 
 	save_dir = "figs/rotation/"
 	os.makedirs(save_dir, exist_ok=True) 
@@ -280,7 +313,6 @@ if __name__ == '__main__':
 	# We first perform a qualitative analysis of the invariance and equivariance properties of the network. For this analysis, we randomly draw exemplars from the MNIST dataset, using one exemplar per digit and generating 360 rotations (in 1 degree increments) of each exemplar to form the image orbits. We then pass the data through the model, and examine the output of the first linear term $Wx$ and the output of the full network.
 
 	# **Generate Dataset**
-
 
 	inv_eq_dataset = MNIST_train_inv_eq_set(
 		path="../datasets/mnist/mnist_train.csv", 

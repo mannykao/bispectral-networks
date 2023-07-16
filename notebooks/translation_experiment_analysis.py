@@ -25,6 +25,8 @@ import matplotlib.font_manager as font_manager
 sns.set(font_scale=1.5)
 sns.set_style('dark')
 
+from mk_mlutils.utils import torchutils
+
 from rotation_experiment_analysis import Weights
 #from rotation_experiment_analysis import Weights, Equivariance, Invariance, Generalization, Robustness
 
@@ -233,6 +235,9 @@ if __name__ == '__main__':
 	# - Robustness
 	print("Bispectral Neural Networks - Translation Experiment..")
 
+	SEED = 0
+	device = torchutils.onceInit(kCUDA=True, seed=SEED)
+ 
 	save_dir = "figs/translation/"
 	os.makedirs(save_dir, exist_ok=True)
 
@@ -289,7 +294,7 @@ if __name__ == '__main__':
 	if kInvariance:
 		Invariance(inv_eq_dataset, out, save_dir)
 
-	# ## Generalization Analysis
+	# ## Robustness Analysis
 	# 
 	# We next quantify the generalization performance of the network on the test data. Here, we use a smaller subset of the rotations, to make it computationally feasible to compute pairwise distances between the network outputs for all datapoints. We then examine the k-nearest neighbors of each datapoint and examine the fraction of k that are correctly classified as within-orbit. K is set to the number of elements in the orbit. Here, since 10% of the orbit was selected (fraction_transforms parameter in CyclicTranslation2D), the orbit has 25 elements. A model that perfectly collapses orbits should achieve 100% classification accuracy on this metric.
 	if kGeneralization:
