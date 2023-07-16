@@ -30,10 +30,10 @@ from mk_mlutils.utils import torchutils
 
 kMNIST_path = "datasets/mnist/mnist_train.csv"
 log_path = "logs/rotation_model/"
-save_dir = "notebooks/figs/rotation/"
+save_dir = Path("notebooks/figs/rotation/")
 
 
-kWeights=False
+kWeights=True
 kEquivariance=True
 kInvariance=True
 kGeneralization=True
@@ -69,20 +69,20 @@ def MNIST_train_inv_eq_set(
 
 def Weights(
 	weights,
-	save_dir,
+	save_dir:Path,
 	kPlot:bool=False
 ):
 	# **Real Components**
-	image_grid(weights.real, cmap="Greys_r", shape=(16, 16), figsize=(15, 15), share_range=False, save_name=os.path.join(save_dir, "W_real.pdf"))
+	image_grid(weights.real, cmap="Greys_r", shape=(16, 16), figsize=(15, 15), share_range=False, save_name=save_dir/"W_real.pdf")
 	# **Imaginary Components**
-	image_grid(weights.imag, cmap="Greys_r", shape=(16, 16), figsize=(15, 15), share_range=False, save_name=os.path.join(save_dir, "W_imag.pdf"))
+	image_grid(weights.imag, cmap="Greys_r", shape=(16, 16), figsize=(15, 15), share_range=False, save_name=save_dir/"W_imag.pdf")
 
 	if kPlot: plt.show()
 
 def Equivariance(
 	inv_eq_dataset,
 	out, 				#output of model (foreward)
-	save_dir,
+	save_dir:Path,
 	kPlot:bool=False
 ):
 	""" **First Linear Term (Equivariance)** 
@@ -103,28 +103,28 @@ def Equivariance(
 	plt.figure(figsize=(7, 7))
 	plt.plot(l_out[:360, [17, 8, 9, 12]].real,);
 	plt.axis([-20, 380, -3.2, 3.2]);
-	plt.savefig(os.path.join(save_dir, "equivariance-0.pdf"))
+	plt.savefig(save_dir/"equivariance-0.pdf")
 
 	image_grid(inv_eq_dataset.data[::20][18:27].reshape(-1, 16, 16), shape=(1, 9), cmap="Greys_r")
 
 	plt.figure(figsize=(7, 7))
 	plt.plot(l_out[360:720, [17, 8, 9, 12]].real,);
 	plt.axis([-20, 380, -3.2, 3.2]);
-	plt.savefig(os.path.join(save_dir, "equivariance-1.pdf"))
+	plt.savefig(save_dir/"equivariance-1.pdf")
 
 	image_grid(inv_eq_dataset.data[::20][36:45].reshape(-1, 16, 16), shape=(1, 9), cmap="Greys_r")
 
 	plt.figure(figsize=(7, 7))
 	plt.plot(l_out[720:720+360, [17, 8, 9, 12]].real,);
 	plt.axis([-20, 380, -3.2, 3.2]);
-	plt.savefig(os.path.join(save_dir, "equivariance-2.pdf"))
+	plt.savefig(save_dir/"equivariance-2.pdf")
 
 	time_spent(start, f"Elapsed Time: ", count=1)
 
 def Invariance(
 	inv_eq_dataset:torch.utils.data.Dataset,
 	out, 				#output of model (foreward)
-	save_dir:str,
+	save_dir:Path,
 	kPlot:bool=False
 ):
 	"""
@@ -139,21 +139,21 @@ def Invariance(
 	plt.figure(figsize=(7, 7))
 	plt.plot(out[:360].real);
 	plt.axis([-20, 380, -0.2, 1.0]);
-	plt.savefig(os.path.join(save_dir, "invariance-0.pdf"))
+	plt.savefig(save_dir/"invariance-0.pdf")
 
 	image_grid(inv_eq_dataset.data[::20][18:27].reshape(-1, 16, 16), shape=(1, 9), cmap="Greys_r")
 
 	plt.figure(figsize=(7, 7))
 	plt.plot(out[360:720].real);
 	plt.axis([-20, 380, -0.2, 1.0]);
-	plt.savefig(os.path.join(save_dir, "invariance-1.pdf"))
+	plt.savefig(save_dir/"invariance-1.pdf")
 
 	image_grid(inv_eq_dataset.data[::20][36:45].reshape(-1, 16, 16), shape=(1, 9), cmap="Greys_r")
 
 	plt.figure(figsize=(7, 7))
 	plt.plot(out[720:720+360].real);
 	plt.axis([-20, 380, -0.2, 1.0]);
-	plt.savefig(os.path.join(save_dir, "invariance-2.pdf"))
+	plt.savefig(save_dir/"invariance-2.pdf")
 
 	time_spent(start, f"Elapsed Time: ", count=1)
 
@@ -196,7 +196,7 @@ def Generalization(
 	plt.figure(figsize=(15, 15))
 	im = plt.imshow(distance_matrix)
 	plt.colorbar(im, fraction=0.046, pad=0.04)
-	plt.savefig(save_dir + "test_distance_matrix.pdf")
+	plt.savefig(save_dir/"test_distance_matrix.pdf")
 
 	time_spent(start, f"Elapsed Time: ", count=1)
 
@@ -265,7 +265,7 @@ def Robustness(
 	history.shape
 
 	image_grid(history[-1], shape=(10, 10), cmap="Greys_r", figsize=(20, 20))
-	plt.savefig(os.path.join(save_dir, "adversary.pdf"))
+	plt.savefig(save_dir/"adversary.pdf")
 
 	time_spent(start, f"Elapsed Time: ", count=1)
 
