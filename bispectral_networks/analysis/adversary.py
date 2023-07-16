@@ -29,13 +29,14 @@ class BasicGradientDescent(torch.nn.Module):
         self.save_interval = save_interval
         self.print_interval = print_interval
 
+        model = model.to(device)
         self.model = model
         for p in self.model.parameters():
             p.requires_grad = False
 
         self.target_image = target_image.to(device)
         
-        self.target_embedding, _ = model(target_image.to(device))
+        self.target_embedding, _ = model(self.target_image)
         if len(self.target_embedding.shape) < 2:
             self.target_embedding = self.target_embedding.unsqueeze(0)
         self.target_embedding = self.target_embedding.detach()

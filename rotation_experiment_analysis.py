@@ -6,7 +6,6 @@ import time, timeit
 from mkpyutils.testutil import time_spent
 
 import sys
-sys.path.append("../")
 import os
 import torch
 import numpy as np
@@ -29,7 +28,12 @@ sns.set_style('dark')
 
 from mk_mlutils.utils import torchutils
 
-kWeights=True
+kMNIST_path = "datasets/mnist/mnist_train.csv"
+log_path = "logs/rotation_model/"
+save_dir = "notebooks/figs/rotation/"
+
+
+kWeights=False
 kEquivariance=True
 kInvariance=True
 kGeneralization=True
@@ -45,7 +49,7 @@ def SO2Xform(fraction_transforms=1.0) -> List:
 	return [transform1, transform2, transform3, transform4, transform5]
 
 def MNIST_train_inv_eq_set(
-	path="../datasets/mnist/mnist_train.csv", 
+	path=kMNIST_path, 
 	n_exemplars=1,	# 1 exemplar per digit is randomly selected
 	patch_size:int=16,
 	fraction_transforms=1.0,	#use subsampled rotation xform or full 
@@ -175,7 +179,7 @@ def Generalization(
 	torchutils.initSeeds(0)		#torch.random.seed()
 
 	knn_dataset = MNIST_train_inv_eq_set(
-		path="../datasets/mnist/mnist_train.csv", 
+		path=kMNIST_path, 
 		n_exemplars=1,	# 1 exemplar per digit is randomly selected
 		patch_size=16,
 		fraction_transforms=0.1
@@ -202,7 +206,8 @@ def Robustness(
 	checkpoint:torch.nn.Module,
 	patch_size:int,
 	save_dir:str,
-	kPlot:bool=False
+	kPlot:bool=False,
+	device="cpu"
 ):
 	# Now, we analyze the robustness of the model through a simple adversarial example experiment. 
 	# Here, we start with noise as the input, and optimize this input to yield a network output that is as close as 
@@ -218,7 +223,7 @@ def Robustness(
 	# that the model has learned to be invariant to. In this notebook we use a margin of 0.1, which is larger than that used 
 	# in the paper (since it tends to be difficult to drive the model lower). This means that the examples are more likely 
 	# to look different from the target. Despite this, we find the same effect, which further demonstrates the robustness of this model.
-	print("adversarial Robustness")
+	print("Adversarial Robustness")
 	start = time.time()
 	from bispectral_networks.analysis.adversary import BasicGradientDescent
 	from bispectral_networks.analysis.plotting import animated_video
@@ -226,7 +231,7 @@ def Robustness(
 	torchutils.initSeeds(1)		#torch.random.seed()
 
 	# 1 exemplar per digit is randomly selected
-	pattern = MNISTExemplars(path="../datasets/mnist/mnist_train.csv", n_exemplars=1)
+	pattern = MNISTExemplars(path=kMNIST_path, n_exemplars=1)
 
 	# Resize the images to the size of the patches the network was trained on
 	resized = torch.stack([torch.tensor(resize(x.numpy(), (patch_size, patch_size))) for x in pattern.data])
@@ -239,9 +244,9 @@ def Robustness(
 	robustness_dataset = TransformDataset(pattern, [transform1, transform2, transform3])
 	print(f" {robustness_dataset.data.shape=}")
 
-	device = "cpu"
+	cpudevice = "cpu"
 	target_idx = np.random.randint(len(robustness_dataset.data))
-	target_image = robustness_dataset.data[target_idx].to(device)
+	target_image = robustness_dataset.data[target_idx].to(cpudevice)
 	target_image_tiled = torch.tensor(np.tile(target_image, (100, 1)))
 
 	plt.imshow(target_image.reshape(patch_size, patch_size), cmap="Greys_r")
@@ -285,7 +290,6 @@ if __name__ == '__main__':
 	SEED = 0
 	device = torchutils.onceInit(kCUDA=True, seed=SEED)
 
-	save_dir = "figs/rotation/"
 	os.makedirs(save_dir, exist_ok=True) 
 
 	# ### Load Checkpoint
@@ -294,8 +298,7 @@ if __name__ == '__main__':
 	# 
 	# Alternatively, the user can load a new model by changing the `log_path` below to the location of the log folder for that model.
 
-	log_path = "../logs/rotation_model/"
-	checkpoint, config, weights = load_checkpoint(log_path)
+	checkpoint, config, weights = load_checkpoint(log_path, device=device)
 
 	print(f"{weights.dtype=}, {weights.shape=}")
 
@@ -315,7 +318,7 @@ if __name__ == '__main__':
 	# **Generate Dataset**
 
 	inv_eq_dataset = MNIST_train_inv_eq_set(
-		path="../datasets/mnist/mnist_train.csv", 
+		path=kMNIST_path, 
 		n_exemplars=1,	# 1 exemplar per digit is randomly selected
 		patch_size=16,
 		fraction_transforms=1.0
@@ -352,5 +355,5 @@ if __name__ == '__main__':
 	# 
 	# We find that, for this model, points that are close in embedding space will be (close to) equivalent up to the group action that the model has learned to be invariant to. In this notebook we use a margin of 0.1, which is larger than that used in the paper (since it tends to be difficult to drive the model lower). This means that the examples are more likely to look different from the target. Despite this, we find the same effect, which further demonstrates the robustness of this model.
 	if kRobustness:
-		Robustness(checkpoint, patch_size, save_dir)
+		Robustness(checkpoint, patch_size, save_dir, device=device)
 
