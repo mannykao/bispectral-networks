@@ -32,9 +32,9 @@ from mk_mlutils.utils import torchutils
 from rotation_experiment_analysis import Weights
 #from rotation_experiment_analysis import Weights, Equivariance, Invariance, Generalization, Robustness
 
-kWeights=False
-kEquivariance=False
-kInvariance=False
+kWeights=True
+kEquivariance=True
+kInvariance=True
 kGeneralization=True
 kRobustness=True
 
