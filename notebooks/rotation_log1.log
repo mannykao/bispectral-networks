@@ -1,0 +1,16 @@
+python rotation_experiment_analysis.py
+Bispectral Neural Networks - Rotation Experiment..
+load_checkpoint(logdir=../logs/rotation_model/)
+weights.dtype=dtype('complex64'), weights.shape=(256, 16, 16)
+torch.Size([3600, 256])
+Equivariance
+Invariance
+Generalization
+torch.Size([360, 256])
+The model successfully classified 100.00% of the orbit on average.
+The model misclassified 0.00% of the orbit on average.
+adversarial Robustness
+torch.Size([10, 256])
+Iter: 100 | Distance: 0.18137922883033752
+Final Distance: 0.09988655894994736
+
