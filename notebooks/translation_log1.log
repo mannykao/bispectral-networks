@@ -1,0 +1,33 @@
+Bispectral Neural Networks - Translation Experiment..
+torchutils.onceInit device = cuda:0
+initSeeds(0)
+load_checkpoint(logdir=../logs/translation_model/)
+weights.dtype=dtype('complex64'), weights.shape=(256, 16, 16)
+torch.Size([2560, 256])
+Equivariance
+Invariance
+Generalization
+ torch.Size([2560, 256])
+ The model successfully classified 100.00% of the orbit on average.
+ The model misclassified 0.00% of the orbit on average.
+
+adversarial Robustness
+ torch.Size([10, 256])
+ Final Distance: 0.0973895862698555
+-----------------------------------------
+Bispectral Neural Networks - Translation Experiment..
+torchutils.onceInit device = cuda:0
+initSeeds(0)
+load_checkpoint(logdir=../logs/translation_model/)
+weights.dtype=dtype('complex64'), weights.shape=(256, 16, 16)
+torch.Size([2560, 256])
+Generalization
+ knn_dataset.data.shape=torch.Size([250, 256])
+ The model successfully classified 100.00% of the orbit on average.
+ The model misclassified 0.00% of the orbit on average.
+time spend on Elapsed Time:  method = 51.65s
+
+adversarial Robustness
+ torch.Size([10, 256])
+ Final Distance: 0.0973895862698555
+time spend on Elapsed Time:  method = 46.66s

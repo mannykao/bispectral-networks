@@ -2,6 +2,8 @@
 # coding: utf-8
 from typing import Tuple, Callable, Iterable, List, Any, Dict, Union
 from pathlib import Path
+import time, timeit
+from mkpyutils.testutil import time_spent
 
 import sys
 sys.path.append("../")
@@ -30,14 +32,14 @@ from mk_mlutils.utils import torchutils
 from rotation_experiment_analysis import Weights
 #from rotation_experiment_analysis import Weights, Equivariance, Invariance, Generalization, Robustness
 
-kWeights=True
-kEquivariance=True
-kInvariance=True
+kWeights=False
+kEquivariance=False
+kInvariance=False
 kGeneralization=True
 kRobustness=True
 
 def CyclicTranslation2DXform(fraction_transforms=1.0) -> List:
-	transform1 = CyclicTranslation2D(fraction_transforms=1.0, sample_method="linspace")
+	transform1 = CyclicTranslation2D(fraction_transforms=fraction_transforms, sample_method="linspace")
 	transform2 = CenterMean()
 	transform3 = UnitStd()
 	transform4 = Ravel()
@@ -71,6 +73,7 @@ def Equivariance(
 		Output: save_dir/"equivariance-0|1|2.pdf"
 	"""
 	print("Equivariance")
+	start = time.time()
 
 	out = out.detach().numpy()
 	l_out = checkpoint.model.layers[0].forward_linear(inv_eq_dataset.data).detach().numpy()
@@ -97,6 +100,8 @@ def Equivariance(
 	plt.axis([-1, 16, -4.5, 4.5]);
 	plt.savefig(os.path.join(save_dir, "equivariance-2.pdf"))
 
+	time_spent(start, f"Elapsed Time: ", count=1)
+
 def Invariance(
 	inv_eq_dataset:torch.utils.data.Dataset,
 	out, 				#output of model (foreward)
@@ -106,6 +111,7 @@ def Invariance(
 		Output: save_dir/"invariance-0|1|2.pdf"
 	"""
 	print("Invariance")
+	start = time.time()
 	out = out.detach().numpy()
 
 	image_grid(inv_eq_dataset.data[::16][:8].reshape(-1, 16, 16), shape=(1, 8), cmap="Greys_r")
@@ -129,6 +135,7 @@ def Invariance(
 	plt.axis([-1, 16, -0.2, 0.3]);
 	plt.savefig(os.path.join(save_dir, "invariance-2.pdf"))
 
+	time_spent(start, f"Elapsed Time: ", count=1)
 
 def Generalization(
 	checkpoint:torch.nn.Module,
@@ -138,8 +145,9 @@ def Generalization(
 ):
 	# We next quantify the generalization performance of the network on the test data. 
 	#Here, we use a smaller subset of the rotations, to make it computationally feasible to compute pairwise distances between the network outputs for all datapoints. We then examine the k-nearest neighbors of each datapoint and examine the fraction of k that are correctly classified as within-orbit. K is set to the number of elements in the orbit. Here, since 10% of the orbit was selected (fraction_transforms parameter in CyclicTranslation2D), the orbit has 25 elements. A model that perfectly collapses orbits should achieve 100% classification accuracy on this metric.
-
+	print("Generalization")
 	from bispectral_networks.analysis.knn import knn_analysis
+	start = time.time()
 
 	# 1 exemplar per digit is randomly selected
 
@@ -150,18 +158,20 @@ def Generalization(
 		patch_size=16,
 		fraction_transforms=0.1
 	)	
-	print(knn_dataset.data.shape)
+	print(f" {knn_dataset.data.shape=}")
 
 #	k = 25
 	embeddings, distance_matrix, knn_scores = knn_analysis(checkpoint.model, knn_dataset, k)
 
-	print("The model successfully classified {:.2f}% of the orbit on average.".format(knn_scores[0] * 100))
-	print("The model misclassified {:.2f}% of the orbit on average.".format(knn_scores[1] * 100))
+	print(" The model successfully classified {:.2f}% of the orbit on average.".format(knn_scores[0] * 100))
+	print(" The model misclassified {:.2f}% of the orbit on average.".format(knn_scores[1] * 100))
 
 	plt.figure(figsize=(15, 15))
 	im = plt.imshow(distance_matrix)
 	plt.colorbar(im, fraction=0.046, pad=0.04)
 	plt.savefig(save_dir + "test_distance_matrix.pdf")
+
+	time_spent(start, f"Elapsed Time: ", count=1)
 
 
 def Robustness(
@@ -174,6 +184,8 @@ def Robustness(
 	# Now, we analyze the robustness of the model through a simple adversarial example experiment. Here, we start with noise as the input, and optimize this input to yield a network output that is as close as possible to the network output for a target image. For this analysis, we select a single exemplar from the MNIST dataset as the target, and run the optimization starting from 100 different noise images to examine the range of results. Note that the BasicGradientDescent method often gets stuck in local minima that are farther from the target embedding than desired to be considered a meaningful "adversarial example." While such runs are interesting regardless, the approach should be rerun until the target reaches the margin. Fancier optimization methods could be used to escape these local minima, but here we use a vanilla model.
 	# 
 	# We find that, for this model, points that are close in embedding space will be (close to) equivalent up to the group action that the model has learned to be invariant to. In this notebook we use a margin of 0.1, which is larger than that used in the paper (since it tends to be difficult to drive the model lower). This means that the examples are more likely to look different from the target. Despite this, we find the same effect, which further demonstrates the robustness of this model.
+	print("adversarial Robustness")
+	start = time.time()
 
 	from bispectral_networks.analysis.adversary import BasicGradientDescent
 	from bispectral_networks.analysis.plotting import animated_video
@@ -192,7 +204,7 @@ def Robustness(
 	transform2 = UnitStd()
 	transform3 = Ravel()
 	robustness_dataset = TransformDataset(pattern, [transform1, transform2, transform3])
-	print(robustness_dataset.data.shape)
+	print(f" {robustness_dataset.data.shape=}")
 
 	device = "cpu"
 	target_idx = np.random.randint(len(robustness_dataset.data))
@@ -218,6 +230,7 @@ def Robustness(
 	image_grid(history[-1], shape=(10, 10), cmap="Greys_r", figsize=(20, 20))
 	plt.savefig(os.path.join(save_dir, "adversary.pdf"))
 
+	time_spent(start, f"Elapsed Time: ", count=1)
 
 	# **Visualizing the Optimization Process**
 	# 
