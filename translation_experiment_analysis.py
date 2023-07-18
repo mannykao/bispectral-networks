@@ -28,6 +28,7 @@ import matplotlib.font_manager as font_manager
 from mk_mlutils.utils import torchutils
 
 from bispectral_networks.MNIST_inv_eq import MNISTExemplars, MNIST_train_inv_eq_set
+import bispectral_networks.MNIST_inv_eq as MNIST_inv_eq
 from rotation_experiment_analysis import Weights
 #from rotation_experiment_analysis import Weights, Equivariance, Invariance, Generalization, Robustness
 
@@ -41,32 +42,6 @@ kInvariance=True
 kGeneralization=True
 kRobustness=True
 
-def CyclicTranslation2DXform(fraction_transforms=1.0) -> List:
-	transform1 = CyclicTranslation2D(fraction_transforms=fraction_transforms, sample_method="linspace")
-	transform2 = CenterMean()
-	transform3 = UnitStd()
-	transform4 = Ravel()
-	return [transform1, transform2, transform3, transform4]
-
-def MNIST_train_inv_eq_set(
-	path=kMNIST_path,
-	n_exemplars=1,	# 1 exemplar per digit is randomly selected
-	patch_size:int=16,
-	fraction_transforms=1.0,	#use subsampled rotation xform or full
-	seed=0, 
-)  -> TransformDataset:
-	torchutils.initSeeds(seed)		#torch.random.seed()
-	
-	pattern = MNISTExemplars(path=path, n_exemplars=n_exemplars)
-
-	# Resize the images to the size of the patches the network was trained on
-	resized = torch.stack([torch.tensor(resize(x.numpy(), (patch_size, patch_size))) for x in pattern.data])
-	pattern.data = resized
-
-	# Apply transformations
-	transforms = CyclicTranslation2DXform(fraction_transforms=fraction_transforms)
-	inv_eq_dataset = TransformDataset(pattern, transforms)
-	return inv_eq_dataset
 
 def Equivariance(
 	inv_eq_dataset,
@@ -161,7 +136,8 @@ def Generalization(
 		path=kMNIST_path, 
 		n_exemplars=1,	# 1 exemplar per digit is randomly selected
 		patch_size=16,
-		fraction_transforms=0.1
+		fraction_transforms=0.1,
+		xformkind="cyclicxlat",
 	)	
 	print(f" {knn_dataset.data.shape=}")
 
@@ -196,20 +172,17 @@ def Robustness(
 	from bispectral_networks.analysis.adversary import BasicGradientDescent
 	from bispectral_networks.analysis.plotting import animated_video
 
-	torchutils.initSeeds(1)		#torch.random.seed()
+	#torchutils.initSeeds(1)		#torch.random.seed()
 
 	# 1 exemplar per digit is randomly selected
-	pattern = MNISTExemplars(path=kMNIST_path, n_exemplars=1)
-
-	# Resize the images to the size of the patches the network was trained on
-	resized = torch.stack([torch.tensor(resize(x.numpy(), (patch_size, patch_size))) for x in pattern.data])
-	pattern.data = resized
-
-	# Apply transformations
-	transform1 = CenterMean()
-	transform2 = UnitStd()
-	transform3 = Ravel()
-	robustness_dataset = TransformDataset(pattern, [transform1, transform2, transform3])
+	robustness_dataset = MNIST_train_inv_eq_set(
+		path=kMNIST_path,
+		n_exemplars=1,	# 1 exemplar per digit is randomly selected
+		patch_size=16,
+		fraction_transforms=1.0,
+		xformkind="center",
+		seed=1
+	)
 	print(f" {robustness_dataset.data.shape=}")
 
 	cpudevice = "cpu"
@@ -290,7 +263,8 @@ if __name__ == '__main__':
 		path=kMNIST_path,
 		n_exemplars=1,	# 1 exemplar per digit is randomly selected
 		patch_size=16,
-		fraction_transforms=1.0
+		fraction_transforms=1.0,
+		xformkind="cyclicxlat",
 	)
 	print(inv_eq_dataset.data.shape)
 

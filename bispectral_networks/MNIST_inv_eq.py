@@ -59,7 +59,7 @@ class MNISTExemplars(Dataset):
 		if (type(path) is str) or (isinstance(path, Path)):
 			images, labels = load_mnistCSV(path)
 		else:
-			print("mnist.MNIST(split='train')")
+			#print("mnist.MNIST(split='train')")
 			mnist_data = mnist.MNIST(split='train')
 			images = np.asarray(getCoeffs(mnist_data))
 			labels = dataset_base.getLabels(mnist_data)
@@ -95,6 +95,12 @@ class MNISTExemplars(Dataset):
 	def __len__(self):
 		return len(self.data)
 
+def CenterXform(fraction_transforms=None) -> List:
+	transform1 = CenterMean()
+	transform2 = UnitStd()
+	transform3 = Ravel()
+	return [transform1, transform2, transform3]
+
 def CyclicTranslation2DXform(fraction_transforms=1.0) -> List:
 	transform1 = CyclicTranslation2D(fraction_transforms=fraction_transforms, sample_method="linspace")
 	transform2 = CenterMean()
@@ -112,11 +118,14 @@ def SO2Xform(fraction_transforms=1.0) -> List:
 
 def MNIST_train_inv_eq_set(
 	path=kMNIST_path,  	#path to the .csv or None to use mnist in mldatasets
-	n_exemplars=1,	# 1 exemplar per digit is randomly selected
+	n_exemplars=1,		# 1 exemplar per digit is randomly selected
 	patch_size:int=16,
-	fraction_transforms=1.0,	#use subsampled rotation xform or full 
+	fraction_transforms=1.0,	#use subsampled rotation xform or full
+	xformkind:str="SO2",		#'SO2|cyclicxlat|center'
+	seed:int=0, 
 )  -> TransformDataset:
-	torchutils.initSeeds(0)		#torch.random.seed()
+	print(f" MNIST_train_inv_eq_set({fraction_transforms=}, {xformkind=})")
+	torchutils.initSeeds(seed)		#torch.random.seed()
 	
 	pattern = MNISTExemplars(path=path, n_exemplars=n_exemplars)
 
@@ -125,7 +134,12 @@ def MNIST_train_inv_eq_set(
 	pattern.data = resized
 
 	# Apply transformations
-	transforms = SO2Xform(fraction_transforms=fraction_transforms)
+	dispatch = {
+		'SO2':			SO2Xform,
+		'cyclicxlat':	CyclicTranslation2DXform,
+		'center':		CenterXform,
+	}
+	transforms = dispatch[xformkind](fraction_transforms=fraction_transforms)
 	inv_eq_dataset = TransformDataset(pattern, transforms)
 	return inv_eq_dataset
 
@@ -172,17 +186,12 @@ def verify_stats(path):
 if __name__ == '__main__':
 	torchutils.initSeeds(0)		#torch.random.seed()
 
-	verify_stats(path=kMNIST_path)	
+	#verify_stats(path=kMNIST_path)	
 
 	start = time.time()
 	mnisttrain = mnist.MNIST(split='train')
 	time_spent(start, f"datasets.mnist: ", count=1)
 	print(f"{mnisttrain=}, {len(mnisttrain)}")
-
-	start = time.time()
-	pattern = MNISTExemplars(path=kMNIST_path, n_exemplars=1)
-	print(pattern)
-	time_spent(start, f"MNISTExemplars: ", count=1)
 
 	start = time.time()
 	inv_eq_dataset = MNIST_train_inv_eq_set(
