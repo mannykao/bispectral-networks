@@ -11,5 +11,5 @@ bispectral_networks.egg-info
 notebooks/.ipynb_checkpoints/
 notebooks/figs/
 dist
-ipynb_checkpoints/
+.ipynb_checkpoints/
 

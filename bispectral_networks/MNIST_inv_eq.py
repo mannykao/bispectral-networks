@@ -28,7 +28,7 @@ from bispectral_networks.data.transforms import CyclicTranslation2D
 from skimage.transform import resize
 
 
-kMNIST_path = "../tdatasets/mnist/mnist_train.csv"
+kMNIST_path = "../datasets/mnist/mnist_train.csv"
 
 def load_mnistCSV(path) -> tuple:
 	print("load_mnistCSV")

@@ -27,7 +27,7 @@ import matplotlib.pyplot as plt
 from mk_mlutils.utils import torchutils
 from bispectral_networks.MNIST_inv_eq import MNISTExemplars, MNIST_train_inv_eq_set
 
-kMNIST_path = None	#"tdatasets/mnist/mnist_train.csv"
+kMNIST_path = None	#"datasets/mnist/mnist_train.csv"
 log_path = "logs/rotation_model/"
 save_dir = Path("notebooks/figs/rotation/")
 

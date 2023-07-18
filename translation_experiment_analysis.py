@@ -31,7 +31,7 @@ from bispectral_networks.MNIST_inv_eq import MNISTExemplars, MNIST_train_inv_eq_
 from rotation_experiment_analysis import Weights
 #from rotation_experiment_analysis import Weights, Equivariance, Invariance, Generalization, Robustness
 
-kMNIST_path = None	#"tdatasets/mnist/mnist_train.csv"
+kMNIST_path = None	#"datasets/mnist/mnist_train.csv"
 log_path = "logs/translation_model/"
 save_dir = Path("notebooks/figs/translation/")
 
