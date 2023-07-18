@@ -1,5 +1,15 @@
 __pycache__
 logs
 datasets
+tdatasets/
 venv4bisp
 *.zip
+*.csv
+*.mat
+*.iml
+bispectral_networks.egg-info
+notebooks/.ipynb_checkpoints/
+notebooks/figs/
+dist
+ipynb_checkpoints/
+

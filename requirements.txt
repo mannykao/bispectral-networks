@@ -9,3 +9,6 @@ pytorch_metric_learning
 pandas
 scipy
 seaborn
+external/mkpypl/datasets-1.7-py3-none-any.whl
+external/mkpypl/mkpyutils-1.5-py3-none-any.whl
+external/mkpypl/mk_mlutils-1.5-py3-none-any.whl

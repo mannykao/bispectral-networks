@@ -2,6 +2,7 @@ import torch
 import os
 import datetime
 import copy
+from pathlib import Path
 from torch.utils.tensorboard import SummaryWriter
 from bispectral_networks.config import Config
 
@@ -63,11 +64,12 @@ class TBLogger:
         
 def load_checkpoint(logdir, device="cpu"):
     print(f"load_checkpoint(logdir={logdir})")
-    all_checkpoints = os.listdir(os.path.join(logdir, "checkpoints"))
+    all_checkpoints = [fn for fn in os.listdir(Path(logdir)/"checkpoints") if fn.endswith(".pt")]
     all_epochs = sorted([int(x.split("_")[1].split(".")[0]) for x in all_checkpoints])
     last_epoch = all_epochs[-1]
     checkpoint = torch.load(os.path.join(logdir, "checkpoints", "checkpoint_{}.pt".format(last_epoch)), map_location=torch.device(device))
     config = torch.load(os.path.join(logdir, "config.pt"))
+
     if not hasattr(checkpoint, "model"):
         trainer = checkpoint["trainer"]
         model_config = Config(trainer.logger.config["model"])
@@ -81,4 +83,5 @@ def load_checkpoint(logdir, device="cpu"):
     W = (checkpoint.model.layers[0].W.real + 1j * checkpoint.model.layers[0].W.imag).detach().numpy()
     patch_size = config["dataset"]["pattern"]["params"]["patch_size"]
     W = W.reshape(W.shape[0], patch_size, patch_size)
+    
     return checkpoint, config, W
