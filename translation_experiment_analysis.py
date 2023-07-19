@@ -33,19 +33,20 @@ from rotation_experiment_analysis import Weights
 #from rotation_experiment_analysis import Weights, Equivariance, Invariance, Generalization, Robustness
 
 kMNIST_path = None	#"datasets/mnist/mnist_train.csv"
-log_path = "logs/translation_model/"
-save_dir = Path("notebooks/figs/translation/")
+kLog_path = "logs/translation_model/"
+kSave_dir = Path("notebooks/figs/translation/")
 
-kWeights=True
+kWeights=False
+kImageGrid=False
 kEquivariance=True
 kInvariance=True
 kGeneralization=True
 kRobustness=True
 
-
+ 
 def Equivariance(
+	checkpoint:torch.nn.Module,
 	inv_eq_dataset,
-	out, 				#output of model (foreward)
 	save_dir
 ):
 	""" **First Linear Term (Equivariance)** 
@@ -54,7 +55,6 @@ def Equivariance(
 	print("Equivariance")
 	start = time.time()
 
-	out = out.detach().numpy()
 	l_out = checkpoint.model.layers[0].forward_linear(inv_eq_dataset.data).detach().numpy()
 	l_out = l_out.real + 1j * l_out.imag
 
@@ -79,7 +79,7 @@ def Equivariance(
 	plt.axis([-1, 16, -4.5, 4.5]);
 	plt.savefig(save_dir/"equivariance-2.pdf")
 
-	time_spent(start, f"Elapsed Time: ", count=1)
+	time_spent(start, f"Equivariance: ", count=1)
 
 def Invariance(
 	inv_eq_dataset:torch.utils.data.Dataset,
@@ -114,7 +114,7 @@ def Invariance(
 	plt.axis([-1, 16, -0.2, 0.3]);
 	plt.savefig(save_dir/"invariance-2.pdf")
 
-	time_spent(start, f"Elapsed Time: ", count=1)
+	time_spent(start, f"Invariance: ", count=1)
 
 def Generalization(
 	checkpoint:torch.nn.Module,
@@ -152,7 +152,7 @@ def Generalization(
 	plt.colorbar(im, fraction=0.046, pad=0.04)
 	plt.savefig(save_dir/"test_distance_matrix.pdf")
 
-	time_spent(start, f"Elapsed Time: ", count=1)
+	time_spent(start, f"Generalization: ", count=1)
 
 
 def Robustness(
@@ -209,7 +209,7 @@ def Robustness(
 	image_grid(history[-1], shape=(10, 10), cmap="Greys_r", figsize=(20, 20))
 	plt.savefig(os.path.join(save_dir, "adversary.pdf"))
 
-	time_spent(start, f"Elapsed Time: ", count=1)
+	time_spent(start, f"Adversial Robustness: ", count=1)
 
 	# **Visualizing the Optimization Process**
 	# 
@@ -218,13 +218,10 @@ def Robustness(
 	animated_video(history[:, 0], interval=100, cmap="Greys_r")
 
 
-if __name__ == '__main__':
-	# # Bispectral Neural Networks - Translation Experiment
-	# 
-	# This notebook reproduces the plots for the translation experiment. It also allows the user to test the network on datasets generated with different random seeds, to examine the generality of the results. We examine the properties of the network with respect to three criteria:
-	# - Invariance and Equivariance
-	# - Generalization
-	# - Robustness
+def main(
+	save_dir=kSave_dir,
+	log_path=kLog_path,
+):
 	print("Bispectral Neural Networks - Translation Experiment..")
 
 	sns.set(font_scale=1.5)
@@ -240,15 +237,19 @@ if __name__ == '__main__':
 	# The default in this notebook is to use the pretrained model from the paper, which is located at `../logs/translation_model/`
 	# 
 	# Alternatively, the user can load a new model by changing the `log_path` below to the location of the log folder for that model.
+	start = time.time()
 
 	checkpoint, config, weights = load_checkpoint(log_path, device=device)
 	print(f"{weights.dtype=}, {weights.shape=}")
+	time_spent(start, f"load_checkpoint: ", count=1)
 
 	patch_size = config["dataset"]["pattern"]["params"]["patch_size"]
 
 	# ### Visualize Weights
 	if kWeights:
+		start = time.time()
 		Weights(weights, save_dir)
+		time_spent(start, f"Weights: ", count=1)
 
 	# ## Evaluate Model
 	# 
@@ -258,6 +259,7 @@ if __name__ == '__main__':
 	# We first perform a qualitative analysis of the invariance and equivariance properties of the network. For this analysis, we randomly draw exemplars from the MNIST dataset, using one exemplar per digit and generating all 256 integer translations of each exemplar to form the image orbits. We then pass the data through the model, and examine the output of the first linear term $Wx$ and the output of the full network.
 
 	# **Generate Dataset**
+	start = time.time()
 
 	inv_eq_dataset = MNIST_train_inv_eq_set(
 		path=kMNIST_path,
@@ -267,19 +269,23 @@ if __name__ == '__main__':
 		xformkind="cyclicxlat",
 	)
 	print(inv_eq_dataset.data.shape)
+	time_spent(start, f"MNIST_train_inv_eq_set: ", count=1)
 
-	image_grid(inv_eq_dataset.data[::10][:144].reshape(-1, patch_size, patch_size), shape=(12, 12), figsize=(15, 15), cmap="Greys_r", save_name=os.path.join(save_dir, "test_examples.pdf"))
-
+	if kImageGrid:
+		start = time.time()
+		image_grid(inv_eq_dataset.data[::10][:144].reshape(-1, patch_size, patch_size), shape=(12, 12), figsize=(15, 15), cmap="Greys_r", save_name=os.path.join(save_dir, "test_examples.pdf"))
+		time_spent(start, f"image_grid(inv_eq_dataset): ", count=1)
 
 	# **Pass Data Through Model**
-
+	start = time.time()
 	out, _ = checkpoint.model(inv_eq_dataset.data)
+	time_spent(start, f"checkpoint.model(inv_eq_dataset.data): ", count=1)
 
 	# **First Linear Term (Equivariance)**
 	# 
 	# The plots below show the outputs of 3 neurons after the first linear term $Wx$ is computed, on the data below: a single digit swept linearly through a translation.  Each colored line represents a single neuron, the y-axis shows the neuron's response, and the x axis corresponds to the translation.
 	if kEquivariance:
-		Equivariance(inv_eq_dataset, out, save_dir)
+		Equivariance(checkpoint, inv_eq_dataset, save_dir)
 
 	# **Invariance**
 	# 
@@ -296,3 +302,13 @@ if __name__ == '__main__':
 	if kRobustness:
 		Robustness(checkpoint, patch_size, save_dir, device)
 
+
+
+if __name__ == '__main__':
+	# # Bispectral Neural Networks - Translation Experiment
+	# 
+	# This notebook reproduces the plots for the translation experiment. It also allows the user to test the network on datasets generated with different random seeds, to examine the generality of the results. We examine the properties of the network with respect to three criteria:
+	# - Invariance and Equivariance
+	# - Generalization
+	# - Robustness
+	main(kSave_dir, kLog_path)
