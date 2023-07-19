@@ -29,15 +29,8 @@ from bispectral_networks.MNIST_inv_eq import MNISTExemplars, MNIST_train_inv_eq_
 import bispectral_networks.MNIST_inv_eq as MNIST_inv_eq
 
 kMNIST_path = None	#"datasets/mnist/mnist_train.csv"
-log_path = "logs/rotation_model/"
-save_dir = Path("notebooks/figs/rotation/")
-
-
-kWeights=True
-kEquivariance=True
-kInvariance=True
-kGeneralization=True
-kRobustness=True
+kLog_path = "logs/rotation_model/"
+kSave_dir = Path("notebooks/figs/rotation/")
 
 
 def Weights(
@@ -53,8 +46,8 @@ def Weights(
 	if kPlot: plt.show()
 
 def Equivariance(
-	inv_eq_dataset,
-	out, 				#output of model (foreward)
+	checkpoint:torch.nn.Module,
+	inv_eq_dataset:torch.utils.data.Dataset,
 	save_dir:Path,
 	kPlot:bool=False
 ):
@@ -67,7 +60,6 @@ def Equivariance(
 	# on the data below: a single digit swept linearly through a translation.  
 	# Each colored line represents a single neuron, the y-axis shows the neuron's response, 
 	# and the x axis corresponds to the translation.
-	out = out.detach().numpy()
 	l_out = checkpoint.model.layers[0].forward_linear(inv_eq_dataset.data).detach().numpy()
 	l_out = l_out.real + 1j * l_out.imag
 
@@ -92,7 +84,7 @@ def Equivariance(
 	plt.axis([-20, 380, -3.2, 3.2]);
 	plt.savefig(save_dir/"equivariance-2.pdf")
 
-	time_spent(start, f"Elapsed Time: ", count=1)
+	time_spent(start, f"Equivariance: ", count=1)
 
 def Invariance(
 	inv_eq_dataset:torch.utils.data.Dataset,
@@ -128,7 +120,7 @@ def Invariance(
 	plt.axis([-20, 380, -0.2, 1.0]);
 	plt.savefig(save_dir/"invariance-2.pdf")
 
-	time_spent(start, f"Elapsed Time: ", count=1)
+	time_spent(start, f"Invariance: ", count=1)
 
 	if kPlot: plt.show()
 
@@ -164,6 +156,7 @@ def Generalization(
 	#4: knn
 	#k = 36
 	embeddings, distance_matrix, knn_scores = knn_analysis(checkpoint.model, knn_dataset, k)
+	tic = time_spent(start, f"knn_analysis: ", count=1)
 
 	print(" The model successfully classified {:.2f}% of the orbit on average.".format(knn_scores[0] * 100))
 	print(" The model misclassified {:.2f}% of the orbit on average.".format(knn_scores[1] * 100))
@@ -173,7 +166,7 @@ def Generalization(
 	plt.colorbar(im, fraction=0.046, pad=0.04)
 	plt.savefig(save_dir/"test_distance_matrix.pdf")
 
-	time_spent(start, f"Elapsed Time: ", count=1)
+	time_spent(start, f"Generalization: ", count=1)
 
 	if kPlot: plt.show()
 
@@ -238,7 +231,7 @@ def Robustness(
 	image_grid(history[-1], shape=(10, 10), cmap="Greys_r", figsize=(20, 20))
 	plt.savefig(save_dir/"adversary.pdf")
 
-	time_spent(start, f"Elapsed Time: ", count=1)
+	time_spent(start, f"Adversarial Robustness: ", count=1)
 
 	if kPlot: plt.show()
 
@@ -248,14 +241,16 @@ def Robustness(
 
 	animated_video(history[:, 0], interval=100, cmap="Greys_r")
 
-
-if __name__ == '__main__':
-	# # Bispectral Neural Networks - Rotation Experiment
-	# 
-	# This notebook reproduces the plots for the rotation experiment. It also allows the user to test the network on datasets generated with different random seeds, to examine the generality of the results. We examine the properties of the network with respect to three criteria:
-	# - Invariance and Equivariance
-	# - Generalization
-	# - Robustness
+def main(
+	log_path=kLog_path,
+	save_dir=kSave_dir,
+	kWeights=False,
+	kImageGrid=False,
+	kEquivariance=False,
+	kInvariance=False,
+	kGeneralization=True,
+	kRobustness=True,
+):
 	print("Bispectral Neural Networks - Rotation Experiment..")
 
 	sns.set(font_scale=1.5)
@@ -302,17 +297,17 @@ if __name__ == '__main__':
 	time_spent(start, f"MNIST_train_inv_eq_set: ", count=1)
 	print(inv_eq_dataset.data.shape)
 
-	image_grid(inv_eq_dataset.data[::10][:144].reshape(-1, patch_size, patch_size), shape=(12, 12), figsize=(15, 15), cmap="Greys_r", save_name=os.path.join(save_dir, "test_examples.pdf"))
+	if kImageGrid:
+		image_grid(inv_eq_dataset.data[::10][:144].reshape(-1, patch_size, patch_size), shape=(12, 12), figsize=(15, 15), cmap="Greys_r", save_name=os.path.join(save_dir, "test_examples.pdf"))
 
 	# **Pass Data Through Model**
 	out, _ = checkpoint.model(inv_eq_dataset.data)
-
 
 	# **First Linear Term (Equivariance)**
 	# 
 	# The plots below show the outputs of 3 neurons after the first linear term $Wx$ is computed, on the data below: a single digit swept linearly through a translation.  Each colored line represents a single neuron, the y-axis shows the neuron's response, and the x axis corresponds to the translation.
 	if kEquivariance:
-		Equivariance(inv_eq_dataset, out, save_dir)
+		Equivariance(checkpoint, inv_eq_dataset, save_dir)
 
 	# **Invariance**
 	# 
@@ -334,3 +329,21 @@ if __name__ == '__main__':
 	if kRobustness:
 		Robustness(checkpoint, patch_size, save_dir, device=device)
 
+
+if __name__ == '__main__':
+	# # Bispectral Neural Networks - Rotation Experiment
+	# 
+	# This notebook reproduces the plots for the rotation experiment. It also allows the user to test the network on datasets generated with different random seeds, to examine the generality of the results. We examine the properties of the network with respect to three criteria:
+	# - Invariance and Equivariance
+	# - Generalization
+	# - Robustness
+	main(
+		log_path=kLog_path,
+		save_dir=kSave_dir,
+		kWeights=False,
+		kImageGrid=False,
+		kEquivariance=True,
+		kInvariance=True,
+		kGeneralization=True,
+		kRobustness=True,
+	)
