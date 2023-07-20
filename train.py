@@ -31,6 +31,7 @@ if __name__ == '__main__':
     if args.device == -1:
         args.device = 'cpu'
 
+    print(f"{args.config}") 
     print("Running experiment on device {}...".format(args.device))
     exec("from configs.{} import master_config, logger_config".format(args.config))
 

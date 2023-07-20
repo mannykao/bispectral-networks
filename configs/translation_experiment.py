@@ -27,7 +27,7 @@ from bispectral_networks.data.datasets import VanHateren
 pattern_config = Config(
     {
         "type": VanHateren,
-        "params": {"path": "datasets/van-hateren/",
+        "params": {"path": "mldatasets/datasets/van_hateren/van_hateren/",
                    "min_contrast": 0.1,
                    "patches_per_image": 3,
                    "patch_size": 16},
