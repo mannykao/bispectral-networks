@@ -173,8 +173,10 @@ def construct_trainer(master_config, logger_config=None):
     """
     
     if "seed" in master_config:
-        torch.manual_seed(master_config["seed"])
-        np.random.seed(master_config["seed"])
+        seed = master_config["seed"]
+        #device = torchutils.onceInit(kCUDA=True, seed=seed)
+        torch.manual_seed(seed)
+        np.random.seed(seed)
         
     model = master_config["model"].build()
     loss = master_config["loss"].build()
@@ -221,6 +223,7 @@ def run_trainer(master_config,
                 logger_config,
                 device=0, 
                 n_examples=1e9,
+                epochs=None,
                 seed=None):
 
     if seed is not None:
@@ -233,7 +236,10 @@ def run_trainer(master_config,
 
     trainer = construct_trainer(master_config, logger_config=logger_config)
 
-    epochs = int(n_examples // len(data_loader.train.dataset.data))
+    if not epochs:
+        print(" {n_examples=} ", end='')
+        epochs = int(n_examples // len(data_loader.train.dataset.data))
+    print(f"train({epochs=})")    
     trainer.model.device = device
     trainer.model = trainer.model.to(device)
     trainer.train(data_loader, epochs=epochs)

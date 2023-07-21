@@ -13,7 +13,7 @@ from bispectral_networks.analysis.plotting import image_grid
 import torch
 
 
-def load_images(path="../datasets/van-hateren/", 
+def load_images(path="../tdatasets/van-hateren/", 
                 normalize=True, 
                 img_shape=(1024, 1536), 
                 select_img_path="./select_imgs.txt"):
@@ -73,7 +73,7 @@ from bispectral_networks.data.transforms import CyclicTranslation2D, CenterMean,
 torch.random.seed()
 
 # Pull patches from the dataset
-pattern = VanHateren(path="../datasets/van-hateren/", min_contrast=0.1, patches_per_image=3, patch_size=16)
+pattern = VanHateren(path="../tdatasets/van-hateren/", min_contrast=0.1, patches_per_image=3, patch_size=16)
 
 # Apply transformations
 transform1 = CyclicTranslation2D(fraction_transforms=0.1, sample_method="linspace")
@@ -91,7 +91,7 @@ image_grid(translation_dataset.data[:100], shape=(10, 10), figsize=(15, 15))
 torch.manual_seed(5)
 
 # Pull patches from the dataset
-pattern = VanHateren(path="../datasets/van-hateren/", min_contrast=0.1, patches_per_image=3, patch_size=16)
+pattern = VanHateren(path="../tdatasets/van-hateren/", min_contrast=0.1, patches_per_image=3, patch_size=16)
 
 # Apply transformations
 transform1 = CyclicTranslation2D(fraction_transforms=1.0, sample_method="random")
@@ -113,7 +113,7 @@ from bispectral_networks.data.transforms import SO2, CircleCrop, CenterMean, Uni
 torch.random.seed()
 
 # Pull patches from the dataset
-pattern = VanHateren(path="../datasets/van-hateren/", min_contrast=0.1, patches_per_image=3, patch_size=16)
+pattern = VanHateren(path="../tdatasets/van-hateren/", min_contrast=0.1, patches_per_image=3, patch_size=16)
 
 # Apply transformations
 transform1 = CenterMean()
@@ -132,7 +132,7 @@ image_grid(rotation_dataset.data[:100], shape=(10, 10), figsize=(15, 15))
 torch.manual_seed(5)
 
 # Pull patches from the dataset
-pattern = VanHateren(path="../datasets/van-hateren/", min_contrast=0.1, patches_per_image=3, patch_size=16)
+pattern = VanHateren(path="../tdatasets/van-hateren/", min_contrast=0.1, patches_per_image=3, patch_size=16)
 
 # Apply transformations
 transform1 = CenterMean()
