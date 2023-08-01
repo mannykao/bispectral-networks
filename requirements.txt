@@ -3,6 +3,7 @@ torch
 cplxmodule
 matplotlib
 jupyter
+tensorsummary
 tensorboard
 scikit-image
 pytorch_metric_learning

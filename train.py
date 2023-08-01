@@ -33,8 +33,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
     if args.device == -1:
         args.device = 'cpu'
-
+            
     print(f"Running {args.config} on device {args.device}...")
-    exec("from configs.{} import master_config, logger_config".format(args.config))
+    exec(f"from configs.{args.config} import master_config, logger_config")
 
     run_wrapper()

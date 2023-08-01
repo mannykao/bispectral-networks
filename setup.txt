@@ -1,0 +1,36 @@
+1. after cloning the repo
+
+2. go to d:\dev\bispectral_networks
+-----------------------------------
+python -m venv venv4bisp
+
+activate the venv4bisp.
+
+3.1 clone or locate your 'mkpypl' and install
+---------------------------------------------
+    datasets-1.7-py3-none-any.whl
+    mkpyutils-1.5-py3-none-any.whl
+    mk_mlutils-1.5-py3-none-any.whl
+
+3.2. install requirements.txt
+-----------------------------
+pip install -r requirementst.txt
+
+4. setup mldatasets' symlinks:
+-----------------------------
+from the root of our repo e.g d:\dev\bispectral_networks
+mkdir mldatasets
+cd mldatasets
+mkdir mnist
+cd mnist
+
+Linux/MacOS:
+ln -s /d/dev/datasets/mnist
+
+or
+
+ln -s /d/dev/datasets/mnist mnist
+
+Windows:
+junction mnist d:\dev\datasets\mnist
+
