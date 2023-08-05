@@ -26,10 +26,17 @@ class VanHateren(VanHaterenDS):
 		patch_size=16,
 		min_contrast=1.0,
 	):
-		path = projconfig.getVanHaterenFolder()
+		path = projconfig.getVanHaterenFolder() 	#TODO: always load from here for now
+		print(f"VanHateren({path=}, {select_img_path=}, {patches_per_image}, {patch_size}, {min_contrast=})")
 
-		super().__init__(path=path, patches_per_image=patches_per_image, patch_size=patch_size, min_contrast=min_contrast)
-			
+		super().__init__(
+			path=path,
+			normalize=normalize,
+			select_img_path=select_img_path,
+			patches_per_image=patches_per_image, 
+			patch_size=patch_size, 
+			min_contrast=min_contrast
+		)
 		full_images = self.images
 		print(f"{self.min_contrast=}, {full_images.shape=}")
 		self.data, self.labels = self.get_patches(full_images)

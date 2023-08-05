@@ -18,6 +18,8 @@ class TransformDataset:
 			List of objects from transformations. The order of the objects
 			determines the order in which they are applied.
 		"""
+		self.dataset = dataset 	#stash original 'dataset' during refactoring to use mldatasets
+		
 		if type(transforms) != list:
 			transforms = [transforms]
 		self.transforms = transforms
