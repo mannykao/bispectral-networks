@@ -58,7 +58,7 @@ class VanHateren(Dataset):
 		patch_size=16,
 		min_contrast=1.0,
 	):
-
+		print(f"VanHateren({path=}, {select_img_path=}, {patches_per_image}, {patch_size}, {min_contrast=})")
 
 		super().__init__()
 			
@@ -75,7 +75,7 @@ class VanHateren(Dataset):
 		full_images = self.load_images()
 
 		self.data, self.labels = self.get_patches(full_images)
-
+		print(f"{len(self)=}")
 		
 	def get_patches(self, full_images):
 		data = []
@@ -195,3 +195,14 @@ class MNISTExemplars(Dataset):
 
 	def __len__(self):
 		return len(self.data)
+
+if (__name__ == '__main__'):
+	from mkpyutils.imgutils import show_imggrid
+	#import datasets.utils.projconfig as projconfig
+
+	vandir = "mldatasets/datasets/van_hateren/van_hateren/"  #projconfig.getVanHaterenFolder()
+	print(vandir)
+
+	#2: subset specified "select_imgs.txt" (from bispectral_networks)
+	van_hateren = VanHateren(path=vandir, min_contrast=0.1, select_img_path="select_imgs.txt")
+	print(van_hateren, len(van_hateren))		
